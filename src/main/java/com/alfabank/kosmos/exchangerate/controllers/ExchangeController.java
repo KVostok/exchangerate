@@ -7,6 +7,7 @@ import com.alfabank.kosmos.exchangerate.services.GifService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,10 +23,16 @@ import java.util.Locale;
 @RestController
 @RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE) //value = ExchangeController.REST_URL,
 public class ExchangeController {
-
     protected final Logger log = LoggerFactory.getLogger(getClass());
+    static final String REST_URL = "/";
 
-    static final String REST_URL = "/api";
+    @Value("${exchange.server}") private String exServer;
+    @Value("${exchange.app_id}") private String exchangeAppID;
+    @Value("${exchange.base}") private String curBase;
+    @Value("${gif.server}") private String gifServer;
+    @Value("${gif.app_id}") private String gifApiID;
+    @Value("${gif.rich}") private String rich;
+    @Value("${gif.broken}") private String broken;
 
     @Autowired
     private final ExchangeService exchangeService;
@@ -33,66 +40,49 @@ public class ExchangeController {
     private final GifService gifService;
 
 
-    public ExchangeController(ExchangeService service, GifService gifService) {
-        this.exchangeService = service;
+    public ExchangeController(ExchangeService exchangeService, GifService gifService) {
+        this.exchangeService = exchangeService;
         this.gifService = gifService;
     }
 
     @GetMapping
-    public String main(){
-        return "Привет!";
+    public ModelAndView getGif(){
+        return new ModelAndView("redirect:" + getGifAsJSON("RUB").getData().getEmbed_url());
     }
 
-    @GetMapping("/{symbol}")
-    public ModelAndView getGif(@PathVariable String symbol) {
+    @GetMapping("/{currency}")
+    public Gif getGifAsJSON(@PathVariable String currency) {
 
-        String cur = "USD";
-        String exID = "6dc4b090c8d44d94a5e8bf4953810a76";
-        String exServer = "https://openexchangerates.org/api/";
-        String exCurrent = exServer + "latest.json?app_id=" + exID;
-
-        URI uri = URI.create(exCurrent);
-
+        String exchangeURL = exServer + "latest.json?app_id=" + exchangeAppID + "&base=" + curBase.toUpperCase();
+        URI uri = URI.create(exchangeURL);
+        log.info("exuri for today {}", uri);
         Exchange exchangeToday = exchangeService.getExchange(uri);
-        log.info("get exchangeToday {}", exchangeToday);
-
-        double curRub = exchangeToday.getRates().get("RUB");
-        double curEx = exchangeToday.getRates().get(cur);
-        double curToRub = curRub / curEx;
+        log.info("get exchangeToday: base currency {} ; rate {} for {}", exchangeToday.getBase(), exchangeToday.getRates().get(currency.toUpperCase()), currency);
 
         LocalDateTime date = LocalDateTime.now().minusDays(1);
         DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
         String yesterday = format.format(date);
-
-
-        String exYesterday = exServer + "historical/" + yesterday + ".json?app_id=" + exID;
+        String exYesterday = exServer + "historical/" + yesterday + ".json?app_id=" + exchangeAppID + "&base=" + curBase.toUpperCase();
         uri = URI.create(exYesterday);
+        log.info("exuri for yesterday {}", uri);
+        Exchange exchangeYesterday = exchangeService.getExchange(uri);
+        log.info("get exchangeYesterday: base currency {} ; rate {} for {}", exchangeYesterday.getBase(), exchangeYesterday.getRates().get(currency.toUpperCase()), currency);
 
-        Exchange yesterdayExchange = exchangeService.getExchange(uri);
-        log.info("get yesterdayExchange {}", yesterdayExchange);
-
-        curRub = yesterdayExchange.getRates().get("RUB");
-        curEx = yesterdayExchange.getRates().get(cur);
-        Double yesToRub = curRub / curEx;
-
-        String gifApiKey = "9gLgANS5aTMNbHOFYqP3aAipTXeTGYAK";
-        String gifServer = "https://api.giphy.com/";
         String gifTag;
-
-        if (curToRub < yesToRub) {
-            gifTag = "broken";
+        if (exchangeToday.getRates().get(currency.toUpperCase()) > exchangeYesterday.getRates().get(currency.toUpperCase())) {
+            gifTag = rich;
         }
         else {
-            gifTag = "rich";
+            gifTag = broken;
         }
 
-        String gifRequest = gifServer + "v1/gifs/random?api_key=" + gifApiKey + "&tag=" + gifTag;
+        String gifRequest = gifServer + "v1/gifs/random?api_key=" + gifApiID + "&tag=" + gifTag;
         uri = URI.create(gifRequest);
         log.info("gifuri {}", uri);
-
         Gif gif = gifService.getGif(uri);
-        log.info("get gif {}", gif);
-        return new ModelAndView("redirect:" + gif.getData().getEmbed_url());
+        log.info("gifEmbed url {}", gif.getData().getEmbed_url());
+        return gif;
+        //return new ModelAndView("redirect:" + gif.getData().getEmbed_url());
     }
 
 }
