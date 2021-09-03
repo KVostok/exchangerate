@@ -1,9 +1,5 @@
 package com.alfabank.kosmos.exchangerate.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.time.LocalDateTime;
 import java.util.Map;
 
 public class Exchange {
@@ -20,8 +16,6 @@ public class Exchange {
 
     private String disclaimer;
     private String license;
-//    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-//    LocalDateTime timestamp;
     private String base;
     private Map<String, Double> rates;
 
