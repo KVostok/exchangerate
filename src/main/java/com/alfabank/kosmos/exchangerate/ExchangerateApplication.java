@@ -12,7 +12,7 @@ public class ExchangerateApplication {
 
     public static void main(String[] args) throws IOException {
         SpringApplication.run(ExchangerateApplication.class, args);
-        openHomePage();
+        //openHomePage();
     }
 
     private static void openHomePage() throws IOException {
