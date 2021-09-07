@@ -29,3 +29,6 @@ docker run -p 8080:8080 -t exchangerate
 gradlew bootRun
 
 После старта приложения открываем в браузере страницу по адресу http://localhost:8080/api/[currency] , вместо [currency] необходимо указать код валюты, например RUB. Для стандартного тарифа в качестве базовой валюты сервис openexchangerates.org предоставляет только USD. Настройки базовой валюты и другие параметры можно поменять в application.properties файле. Сервис возвращает клиенту JSON объект c адресом GIF картинки в соответствии с техзаданием.
+
+---
+<a href="https://kvostok.github.io/my-pet-projects/">Список моих пет-проектов на Github page</a>
