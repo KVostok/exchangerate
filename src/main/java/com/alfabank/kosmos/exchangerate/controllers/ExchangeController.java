@@ -11,12 +11,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static com.alfabank.kosmos.exchangerate.utils.Util.*;
 
 @RestController
-@RequestMapping(produces = MediaType.IMAGE_GIF_VALUE)
+@RequestMapping(produces = MediaType.APPLICATION_JSON_VALUE)
 public class ExchangeController {
     protected final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -25,6 +26,8 @@ public class ExchangeController {
     @Value("${exchange.base}") private String curBase;
     @Value("${gif.server}") private String gifServer;
     @Value("${gif.app_id}") private String gifApiID;
+    @Value("${gif.rich}") private String rich;
+    @Value("${gif.broken}") private String broken;
 
     @Autowired
     private final ExchangeService exchangeService;
@@ -37,25 +40,28 @@ public class ExchangeController {
         this.gifService = gifService;
     }
 
-//    @GetMapping
-//    public String getGif(){
-//        return getGifUrl("RUB");
-//    }
-
-    @ResponseBody
-    @GetMapping("/{currency}")
-    public Gif getGifUrl(@PathVariable String currency) {
-
-        Exchange exchangeToday = exchangeService.getExchange(getExchangeURI(exServer, exchangeAppID, curBase, LocalDateTime.now().minusDays(1)));
-        log.info("get exchangeToday: base currency {} ; rate {} for {}", exchangeToday.getBase(), exchangeToday.getRates().get(currency.toUpperCase()), currency);
-
-        Exchange exchangeYesterday = exchangeService.getExchange(getExchangeURI(exServer,exchangeAppID,curBase,LocalDateTime.now().minusDays(2)));
-        log.info("get exchangeYesterday: base currency {} ; rate {} for {}", exchangeYesterday.getBase(), exchangeYesterday.getRates().get(currency.toUpperCase()), currency);
-
-        Gif gif = gifService.getGif(getGifURI(gifServer, gifApiID, getGifTag(exchangeToday.compareExchangeRate(exchangeYesterday,currency))));
-        log.info("gifEmbed url {}", gif.getData().getEmbed_url());
-        
-        return gif;//.getData().getEmbed_url();
+    @GetMapping
+    public Gif getGif(){
+        return getGifAsJSON("RUB");
     }
 
+    @GetMapping("/{currency}")
+    public Gif getGifAsJSON(@PathVariable String currency) {
+
+        Exchange exchangeToday = exchangeService.getExchange(getExchangeURI(exServer, exchangeAppID, curBase, LocalDateTime.now()));
+        log.info("get exchangeToday: base currency {} ; rate {} for {} on time {}", exchangeToday.getBase(), exchangeToday.getRates().get(currency.toUpperCase()), currency, LocalDate.now());
+
+        Exchange exchangeYesterday = exchangeService.getExchange(getExchangeURI(exServer,exchangeAppID,curBase,LocalDateTime.now().minusDays(1)));
+        log.info("get exchangeYesterday: base currency {} ; rate {} for {} on time {}", exchangeYesterday.getBase(), exchangeYesterday.getRates().get(currency.toUpperCase()), currency, LocalDate.now().minusDays(1));
+
+        String tag = getGifTag(compareExchangeRate(exchangeToday,exchangeYesterday,currency));
+        Gif gif = gifService.getGif(getGifURI(gifServer, gifApiID, tag));
+        log.info("gifEmbed url {} for {} Tag", gif.getData().getEmbed_url(), tag);
+        
+        return gif;
+    }
+
+    public String getGifTag(boolean b){
+        return b?rich:broken;
+    }
 }

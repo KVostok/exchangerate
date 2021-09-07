@@ -1,20 +1,34 @@
 package com.alfabank.kosmos.exchangerate.utils;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.alfabank.kosmos.exchangerate.model.Exchange;
+import org.springframework.util.Assert;
 
 import java.net.URI;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class Util {
 
-    @Value("${gif.rich}") private static String rich;
-    @Value("${gif.broken}") private static String broken;
-
     public static URI getExchangeURI(String exServer, String exchangeAppID, String curBase, LocalDateTime date) {
-        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
+        Assert.notNull(exServer,"field Server is null");
+        Assert.notNull(exchangeAppID,"field exchangeAppID is null");
+        Assert.notNull(curBase,"field curBase is null");
+        Assert.notNull(date,"field date is null");
         StringBuilder builderURL = new StringBuilder();
+
+        if (date.toLocalDate().isEqual(LocalDate.now())) {
+            builderURL
+                    .append(exServer)
+                    .append("latest.json?app_id=")
+                    .append(exchangeAppID)
+                    .append("&base=")
+                    .append(curBase.toUpperCase());
+            return URI.create(builderURL.toString());
+        }
+
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.ENGLISH);
         builderURL
                 .append(exServer)
                 .append("historical/")
@@ -27,6 +41,9 @@ public class Util {
     }
 
     public static URI getGifURI(String gifServer, String gifApiID, String tag) {
+        Assert.notNull(gifServer,"field gifServer is null");
+        Assert.notNull(gifApiID,"field gifApiID is null");
+        Assert.notNull(tag,"field tag is null");
         StringBuilder builderURL = new StringBuilder();
         builderURL
                 .append(gifServer)
@@ -37,8 +54,7 @@ public class Util {
          return URI.create(builderURL.toString());
     }
 
-    public static String getGifTag(boolean b){
-        return b?rich:broken;
+    public static boolean compareExchangeRate(Exchange exch1, Exchange exch2, String currency) {
+        return exch1.getRates().get(currency.toUpperCase()) > exch2.getRates().get(currency.toUpperCase());
     }
-
 }

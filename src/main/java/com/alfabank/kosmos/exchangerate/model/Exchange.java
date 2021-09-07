@@ -29,10 +29,6 @@ public class Exchange {
         this.rates = rates;
     }
 
-    public boolean compareExchangeRate(Exchange exchange, String currency) {
-        return this.getRates().get(currency.toUpperCase()) > exchange.getRates().get(currency.toUpperCase());
-    }
-
     public Map<String, Double> getRates() {
         return rates;
     }
